@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>DRM Stream Lab Player</title>
+<title>🧪 DRM Stream Lab Player</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.9/shaka-player.compiled.js"></script>
 
@@ -63,19 +63,19 @@ video{width:100%;border-radius:16px;background:black}
 <div class="gear" onclick="toggleSettings()">⚙️</div>
 
 <div class="settings-panel" id="settingsPanel">
-<button onclick="openSheet('video')">Video</button>
-<button onclick="openSheet('audio')">Audio</button>
-<button onclick="openSheet('text')">Subs</button>
+<button onclick="openSheet('video')">🎥 Video</button>
+<button onclick="openSheet('audio')">🔊 Audio</button>
+<button onclick="openSheet('text')">💬 Subs</button>
 <button onclick="openSheet('stats')">📊 Stats</button>
 </div>
 
 <video id="video" controls></video>
 
 <div class="hud">
-<div>DRM: <span id="hudDrm">-</span></div>
-<div>Video: <span id="hudVideo">-</span></div>
-<div>Audio: <span id="hudAudio">-</span></div>
-<div>Subs: <span id="hudText">-</span></div>
+<div>🔐 DRM: <span id="hudDrm">-</span></div>
+<div>🎥 Video: <span id="hudVideo">-</span></div>
+<div>🔊 Audio: <span id="hudAudio">-</span></div>
+<div>💬 Subs: <span id="hudText">-</span></div>
 </div>
 
 </div>
@@ -107,8 +107,9 @@ const hudText=document.getElementById("hudText");
 let player;
 let bufferHistory=[];
 let videoTracks=[],audioTracks=[],textTracks=[];
+let detectedKids=[];
 
-/* UI */
+/* 🎯 UI */
 
 function toggleSettings(){
   settingsPanel.style.display=
@@ -120,10 +121,10 @@ function openSheet(t){
   sheet.dataset.type=t;
 
   sheetTitle.textContent=
-    t==="video"?"Video":
-    t==="audio"?"Audio":
-    t==="text"?"Subtitles":
-    "Stats";
+    t==="video"?"🎥 Video":
+    t==="audio"?"🔊 Audio":
+    t==="text"?"💬 Subtitles":
+    "📊 Stats";
 
   renderSheet(t);
   sheet.classList.add("show");
@@ -135,27 +136,19 @@ function closeSheet(){
   backdrop.classList.remove("show");
 }
 
-/* DRM */
+/* 🔐 DRM helpers */
 
-function parseKeys(){
-  const j=json.value.trim();
-  const p=pairs.value.trim();
-  const m={};
-
-  if(j){
-    JSON.parse(j).keys.forEach(k=>m[k.kid]=k.k);
-    return m;
-  }
-
-  p.split("\n").forEach(l=>{
-    if(l.includes(":")){
-      const[a,b]=l.split(":");
-      m[a]=b;
+video.addEventListener("encrypted", e=>{
+  try{
+    const u=new Uint8Array(e.initData);
+    const hex=[...u].map(b=>b.toString(16).padStart(2,"0")).join("");
+    for(let i=0;i<hex.length-32;i+=2){
+      const part=hex.slice(i,i+32);
+      if(!detectedKids.includes(part))
+        detectedKids.push(part);
     }
-  });
-
-  return m;
-}
+  }catch{}
+});
 
 /* MAIN */
 
@@ -176,6 +169,28 @@ async function start(){
 
   buildTrackLists();
   setInterval(updateHUD,1000);
+}
+
+/* 🔑 Parse keys */
+
+function parseKeys(){
+  const j=json.value.trim();
+  const p=pairs.value.trim();
+  const m={};
+
+  if(j){
+    JSON.parse(j).keys.forEach(k=>m[k.kid]=k.k);
+    return m;
+  }
+
+  p.split("\n").forEach(l=>{
+    if(l.includes(":")){
+      const[a,b]=l.split(":");
+      m[a]=b;
+    }
+  });
+
+  return m;
 }
 
 /* TRACKS */
@@ -244,7 +259,7 @@ function selectTrack(type,i){
   closeSheet();
 }
 
-/* BUFFER HELPERS */
+/* BUFFER helpers */
 
 function bufferLength(){
   if(!video.buffered.length)return 0;
@@ -260,7 +275,7 @@ function getBufferedRanges(){
   return r.join(", ");
 }
 
-/* STATS PANEL */
+/* 📊 STATS PANEL */
 
 function renderStatsPanel(){
 
@@ -272,7 +287,13 @@ function renderStatsPanel(){
 
   <b>🔐 DRM</b><br>
   System: ${s.drmInfo?.keySystem||"clear"}<br>
-  KIDs: ${(s.drmInfo?.keyIds||[]).join(", ")||"unknown"}<br><br>
+  KIDs: ${
+    (s.drmInfo?.keyIds && s.drmInfo.keyIds.length)
+      ? s.drmInfo.keyIds.join(", ")
+      : detectedKids.length
+        ? detectedKids.join(", ")
+        : "unknown"
+  }<br><br>
 
   <b>🎥 VIDEO</b><br>
   Resolution: ${video.videoWidth}x${video.videoHeight}<br>
@@ -322,7 +343,7 @@ function updateHUD(){
   drawGraph();
 }
 
-/* GRAPH */
+/* 📈 GRAPH */
 
 function drawGraph(){
 
