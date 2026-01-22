@@ -250,25 +250,34 @@ function getBufferedRanges(){
 
 function renderNetworkStats(){
 
-  const s=player.getStats();
-  const a=player.getVariantTracks().find(v=>v.active);
+  const s = player.getStats();
+  const a = player.getVariantTracks().find(v => v.active);
 
-  sheetList.innerHTML=
-`<pre>${JSON.stringify({
-drm:s.drmInfo?.keySystem,
-kids:s.drmInfo?.keyIds,
-resolution:\`\${video.videoWidth}x\${video.videoHeight}\`,
-fps:a?.frameRate,
-videoCodec:a?.videoCodec,
-audioCodec:a?.audioCodec,
-channels:a?.channelsCount,
-buffered:bufferLength().toFixed(1),
-ranges:getBufferedRanges(),
-bandwidth:Math.round(s.estimatedBandwidth/1000)+" kbps",
-dropped:video.getVideoPlaybackQuality?.().droppedVideoFrames,
-abr:s.abrEnabled,
-playhead:video.currentTime.toFixed(1)
-},null,2)}</pre>`;
+  const info = {
+    drm: s.drmInfo?.keySystem,
+    kids: s.drmInfo?.keyIds,
+
+    resolution: video.videoWidth + "x" + video.videoHeight,
+    fps: a?.frameRate,
+
+    videoCodec: a?.videoCodec,
+    audioCodec: a?.audioCodec,
+    channels: a?.channelsCount,
+
+    buffered: bufferLength().toFixed(1),
+    ranges: getBufferedRanges(),
+
+    bandwidth: Math.round(s.estimatedBandwidth / 1000) + " kbps",
+
+    dropped:
+      video.getVideoPlaybackQuality?.().droppedVideoFrames,
+
+    abr: s.abrEnabled,
+    playhead: video.currentTime.toFixed(1)
+  };
+
+  sheetList.innerHTML =
+    "<pre>" + JSON.stringify(info, null, 2) + "</pre>";
 }
 
 /* HUD + GRAPH */
