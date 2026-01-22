@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Multi-KID DRM Test Player</title>
+
+<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #0d0f14;
+  color: #eee;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 980px;
+  margin: auto;
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.card {
+  background: #171a22;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 0 20px rgba(0,0,0,.4);
+}
+
+label {
+  font-size: 13px;
+  opacity: .8;
+}
+
+input, textarea {
+  width: 100%;
+  background: #0e1117;
+  border: 1px solid #2a2f3a;
+  border-radius: 10px;
+  padding: 10px;
+  color: white;
+  margin-top: 4px;
+}
+
+textarea { resize: vertical; }
+
+button {
+  background: linear-gradient(135deg,#3b82f6,#06b6d4);
+  border: none;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover { opacity: .9; }
+
+.row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+video {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 16px;
+  background: black;
+}
+
+.status {
+  font-size: 13px;
+  opacity: .85;
+  margin-top: 6px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>🧪 Multi-KID DRM Browser Player</h1>
+
+<div class="card">
+  <label>MPD / M3U8 URL</label>
+  <input id="url" placeholder="https://cdn.example.com/movie.mpd">
+
+  <div class="row">
+    <div>
+      <label>ClearKey JSON (optional)</label>
+      <textarea id="json" rows="6"
+placeholder='{"kids":["..."],"keys":[{"kty":"oct","kid":"...","k":"..."}]}'></textarea>
+    </div>
+
+    <div>
+      <label>Bulk KID:KEY (one per line)</label>
+      <textarea id="pairs" rows="6"
+placeholder="kid1:key1
+kid2:key2"></textarea>
+    </div>
+  </div>
+
+  <button onclick="start()">▶ Play</button>
+
+  <div class="status" id="status">Idle.</div>
+</div>
+
+<video id="video" controls></video>
+
+</div>
+
+<script>
+const video = document.getElementById("video");
+const statusBox = document.getElementById("status");
+
+let dashPlayer;
+let mediaKeys;
+
+/* ---------------- Utils ---------------- */
+
+function log(msg) {
+  statusBox.textContent = msg;
+  console.log(msg);
+}
+
+function isDash(url) {
+  return url.includes(".mpd");
+}
+
+function parseClearKeys() {
+  const jsonText = document.getElementById("json").value.trim();
+  const pairsText = document.getElementById("pairs").value.trim();
+
+  if (jsonText) return JSON.parse(jsonText);
+
+  const kids = [];
+  const keys = [];
+
+  pairsText.split("\n").forEach(line => {
+    if (!line.includes(":")) return;
+    const [kid, key] = line.trim().split(":");
+    kids.push(kid);
+    keys.push({ kty: "oct", kid, k: key });
+  });
+
+  return { kids, keys };
+}
+
+/* ---------------- DRM ---------------- */
+
+async function setupClearKey(ck) {
+  log("Setting up ClearKey…");
+
+  const config = [{
+    initDataTypes: ["cenc"],
+    videoCapabilities: [
+      { contentType: 'video/mp4; codecs="avc1.640028"' },
+      { contentType: 'video/mp4; codecs="hev1"' }
+    ]
+  }];
+
+  const access =
+    await navigator.requestMediaKeySystemAccess(
+      "org.w3.clearkey",
+      config
+    );
+
+  mediaKeys = await access.createMediaKeys();
+  await video.setMediaKeys(mediaKeys);
+
+  video.addEventListener("encrypted", async e => {
+    log("Encrypted initData detected");
+
+    const session = mediaKeys.createSession();
+
+    session.addEventListener("message", async () => {
+      const license = new TextEncoder().encode(
+        JSON.stringify(ck)
+      );
+      await session.update(license);
+      log("Keys injected ✔");
+    });
+
+    await session.generateRequest(e.initDataType, e.initData);
+  });
+}
+
+/* ---------------- Main ---------------- */
+
+async function start() {
+  if (dashPlayer) {
+    dashPlayer.reset();
+    dashPlayer = null;
+  }
+
+  video.pause();
+  video.src = "";
+
+  const url = document.getElementById("url").value.trim();
+  if (!url) return alert("Enter manifest URL");
+
+  const clearkey = parseClearKeys();
+
+  await setupClearKey(clearkey);
+
+  if (isDash(url)) {
+    log("Loading DASH…");
+
+    dashPlayer = dashjs.MediaPlayer().create();
+    dashPlayer.initialize(video, url, true);
+
+  } else {
+    log("Loading HLS / direct…");
+    video.src = url;
+    await video.play();
+  }
+}
+</script>
+
+</body>
+</html>
