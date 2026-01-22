@@ -248,21 +248,21 @@ function getBufferedRanges(){
   return r.join(", ");
 }
 
-function renderNetworkStats(){
+function renderNetworkStats() {
 
   const s = player.getStats();
   const a = player.getVariantTracks().find(v => v.active);
 
   const info = {
-    drm: s.drmInfo?.keySystem,
-    kids: s.drmInfo?.keyIds,
+    drm: s.drmInfo ? s.drmInfo.keySystem : null,
+    kids: s.drmInfo ? s.drmInfo.keyIds : null,
 
     resolution: video.videoWidth + "x" + video.videoHeight,
-    fps: a?.frameRate,
+    fps: a ? a.frameRate : null,
 
-    videoCodec: a?.videoCodec,
-    audioCodec: a?.audioCodec,
-    channels: a?.channelsCount,
+    videoCodec: a ? a.videoCodec : null,
+    audioCodec: a ? a.audioCodec : null,
+    channels: a ? a.channelsCount : null,
 
     buffered: bufferLength().toFixed(1),
     ranges: getBufferedRanges(),
@@ -270,7 +270,8 @@ function renderNetworkStats(){
     bandwidth: Math.round(s.estimatedBandwidth / 1000) + " kbps",
 
     dropped:
-      video.getVideoPlaybackQuality?.().droppedVideoFrames,
+      video.getVideoPlaybackQuality &&
+      video.getVideoPlaybackQuality().droppedVideoFrames,
 
     abr: s.abrEnabled,
     playhead: video.currentTime.toFixed(1)
