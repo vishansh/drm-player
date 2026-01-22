@@ -1,228 +1,299 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Multi-KID DRM Test Player</title>
+<title>DRM Stream Lab Player</title>
 
-<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.9/shaka-player.compiled.js"></script>
 
 <style>
-* { box-sizing: border-box; }
-
 body {
-  font-family: system-ui, sans-serif;
+  margin: 0;
   background: #0d0f14;
   color: #eee;
-  margin: 0;
-  padding: 20px;
+  font-family: system-ui, sans-serif;
 }
 
 .container {
-  max-width: 980px;
+  max-width: 1150px;
   margin: auto;
+  padding: 20px;
 }
 
-h1 {
-  font-size: 26px;
-  margin-bottom: 10px;
-}
+/* ---------------- PLAYER ---------------- */
 
-.card {
-  background: #171a22;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 14px;
-  box-shadow: 0 0 20px rgba(0,0,0,.4);
-}
-
-label {
-  font-size: 13px;
-  opacity: .8;
-}
-
-input, textarea {
-  width: 100%;
-  background: #0e1117;
-  border: 1px solid #2a2f3a;
-  border-radius: 10px;
-  padding: 10px;
-  color: white;
-  margin-top: 4px;
-}
-
-textarea { resize: vertical; }
-
-button {
-  background: linear-gradient(135deg,#3b82f6,#06b6d4);
-  border: none;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-size: 15px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-button:hover { opacity: .9; }
-
-.row {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr 1fr;
+.player-wrap {
+  position: relative;
 }
 
 video {
   width: 100%;
-  margin-top: 10px;
   border-radius: 16px;
   background: black;
 }
 
-.status {
-  font-size: 13px;
-  opacity: .85;
+/* ---------- OVERLAY PANEL ---------- */
+
+.overlay-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15,18,26,.9);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.overlay-panel select {
+  background: #0e1117;
+  border: 1px solid #2a2f3a;
+  color: white;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(6px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* ---------------- INPUT CARD ---------------- */
+
+.card {
+  background: #171a22;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+input, textarea, button {
+  width: 100%;
+  background: #0e1117;
+  border: 1px solid #2a2f3a;
+  border-radius: 10px;
+  padding: 9px;
+  color: white;
   margin-top: 6px;
 }
+
+textarea { resize: vertical; }
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+button {
+  background: linear-gradient(135deg,#3b82f6,#06b6d4);
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 </style>
 </head>
 
 <body>
 <div class="container">
 
-<h1>🧪 Multi-KID DRM Browser Player</h1>
+<h1>🧪 DRM Stream Lab Player</h1>
 
+<!-- INPUTS -->
 <div class="card">
   <label>MPD / M3U8 URL</label>
-  <input id="url" placeholder="https://cdn.example.com/movie.mpd">
+  <input id="url" placeholder="https://cdn.example.com/manifest.mpd">
 
   <div class="row">
-    <div>
-      <label>ClearKey JSON (optional)</label>
-      <textarea id="json" rows="6"
-placeholder='{"kids":["..."],"keys":[{"kty":"oct","kid":"...","k":"..."}]}'></textarea>
-    </div>
+    <textarea id="json" rows="5"
+placeholder="ClearKey JSON (optional)"></textarea>
 
-    <div>
-      <label>Bulk KID:KEY (one per line)</label>
-      <textarea id="pairs" rows="6"
+    <textarea id="pairs" rows="5"
 placeholder="kid1:key1
 kid2:key2"></textarea>
-    </div>
   </div>
 
   <button onclick="start()">▶ Play</button>
-
-  <div class="status" id="status">Idle.</div>
 </div>
 
-<video id="video" controls></video>
+<!-- PLAYER -->
+<div class="player-wrap">
+
+  <!-- selectors IN PLAYER -->
+  <div class="overlay-panel">
+    <select id="videoSelect"></select>
+    <select id="audioSelect"></select>
+    <select id="textSelect"></select>
+  </div>
+
+  <video id="video" controls></video>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div><b>DRM:</b> <span id="hudDrm">-</span></div>
+    <div><b>Video:</b> <span id="hudVideo">-</span></div>
+    <div><b>Audio:</b> <span id="hudAudio">-</span></div>
+    <div><b>Subs:</b> <span id="hudText">-</span></div>
+  </div>
+
+</div>
 
 </div>
 
 <script>
 const video = document.getElementById("video");
-const statusBox = document.getElementById("status");
 
-let dashPlayer;
-let mediaKeys;
+const videoSel = document.getElementById("videoSelect");
+const audioSel = document.getElementById("audioSelect");
+const textSel  = document.getElementById("textSelect");
 
-/* ---------------- Utils ---------------- */
+const hudDrm   = document.getElementById("hudDrm");
+const hudVideo = document.getElementById("hudVideo");
+const hudAudio = document.getElementById("hudAudio");
+const hudText  = document.getElementById("hudText");
 
-function log(msg) {
-  statusBox.textContent = msg;
-  console.log(msg);
-}
+let player;
 
-function isDash(url) {
-  return url.includes(".mpd");
-}
+/* ---------------- UTIL ---------------- */
 
-function parseClearKeys() {
-  const jsonText = document.getElementById("json").value.trim();
-  const pairsText = document.getElementById("pairs").value.trim();
+function parseKeys() {
+  const json = document.getElementById("json").value.trim();
+  const pairs = document.getElementById("pairs").value.trim();
 
-  if (jsonText) return JSON.parse(jsonText);
-
-  const kids = [];
-  const keys = [];
-
-  pairsText.split("\n").forEach(line => {
-    if (!line.includes(":")) return;
-    const [kid, key] = line.trim().split(":");
-    kids.push(kid);
-    keys.push({ kty: "oct", kid, k: key });
-  });
-
-  return { kids, keys };
-}
-
-/* ---------------- DRM ---------------- */
-
-async function setupClearKey(ck) {
-  log("Setting up ClearKey…");
-
-  const config = [{
-    initDataTypes: ["cenc"],
-    videoCapabilities: [
-      { contentType: 'video/mp4; codecs="avc1.640028"' },
-      { contentType: 'video/mp4; codecs="hev1"' }
-    ]
-  }];
-
-  const access =
-    await navigator.requestMediaKeySystemAccess(
-      "org.w3.clearkey",
-      config
-    );
-
-  mediaKeys = await access.createMediaKeys();
-  await video.setMediaKeys(mediaKeys);
-
-  video.addEventListener("encrypted", async e => {
-    log("Encrypted initData detected");
-
-    const session = mediaKeys.createSession();
-
-    session.addEventListener("message", async () => {
-      const license = new TextEncoder().encode(
-        JSON.stringify(ck)
-      );
-      await session.update(license);
-      log("Keys injected ✔");
-    });
-
-    await session.generateRequest(e.initDataType, e.initData);
-  });
-}
-
-/* ---------------- Main ---------------- */
-
-async function start() {
-  if (dashPlayer) {
-    dashPlayer.reset();
-    dashPlayer = null;
+  if (json) {
+    const ck = JSON.parse(json);
+    const map = {};
+    ck.keys.forEach(k => map[k.kid] = k.k);
+    return map;
   }
 
-  video.pause();
-  video.src = "";
+  const map = {};
+  pairs.split("\n").forEach(l => {
+    if (!l.includes(":")) return;
+    const [kid, key] = l.trim().split(":");
+    map[kid] = key;
+  });
+
+  return map;
+}
+
+/* ---------------- MAIN ---------------- */
+
+async function start() {
+
+  if (player) await player.destroy();
 
   const url = document.getElementById("url").value.trim();
   if (!url) return alert("Enter manifest URL");
 
-  const clearkey = parseClearKeys();
+  const clearKeys = parseKeys();
 
-  await setupClearKey(clearkey);
+  shaka.polyfill.installAll();
 
-  if (isDash(url)) {
-    log("Loading DASH…");
+  player = new shaka.Player(video);
 
-    dashPlayer = dashjs.MediaPlayer().create();
-    dashPlayer.initialize(video, url, true);
-
-  } else {
-    log("Loading HLS / direct…");
-    video.src = url;
-    await video.play();
+  if (Object.keys(clearKeys).length) {
+    player.configure({ drm: { clearKeys } });
   }
+
+  await player.load(url);
+
+  populateSelectors();
+  setInterval(updateHUD, 1000);
+}
+
+/* ---------------- SELECTORS ---------------- */
+
+function populateSelectors() {
+
+  const variants = player.getVariantTracks();
+  const textTracks = player.getTextTracks();
+
+  // VIDEO
+  const videoTracks = variants.filter(v => v.videoCodec);
+  videoSel.innerHTML = "";
+  videoTracks.forEach((v, i) => {
+    const o = document.createElement("option");
+    o.value = i;
+    o.textContent = `${v.height}p`;
+    videoSel.appendChild(o);
+  });
+
+  videoSel.onchange = () => {
+    player.configure({ abr: { enabled: false }});
+    player.selectVariantTrack(videoTracks[videoSel.value], true);
+  };
+
+  // AUDIO
+  const langs = [...new Set(variants.map(v => v.language))];
+  audioSel.innerHTML = "";
+  langs.forEach(l => {
+    const o = document.createElement("option");
+    o.value = l;
+    o.textContent = l;
+    audioSel.appendChild(o);
+  });
+
+  audioSel.onchange = () => {
+    player.selectAudioLanguage(audioSel.value);
+  };
+
+  // SUBS
+  textSel.innerHTML = "";
+  const off = document.createElement("option");
+  off.value = "";
+  off.textContent = "Subs Off";
+  textSel.appendChild(off);
+
+  textTracks.forEach(t => {
+    const o = document.createElement("option");
+    o.value = t.language;
+    o.textContent = t.language;
+    textSel.appendChild(o);
+  });
+
+  textSel.onchange = () => {
+    if (!textSel.value) {
+      player.setTextTrackVisibility(false);
+    } else {
+      player.selectTextLanguage(textSel.value);
+      player.setTextTrackVisibility(true);
+    }
+  };
+}
+
+/* ---------------- HUD ---------------- */
+
+function updateHUD() {
+  if (!player) return;
+
+  const stats = player.getStats();
+  const active = player.getVariantTracks().find(v => v.active);
+
+  hudDrm.textContent =
+    stats.drmInfo?.keySystem || "clear";
+
+  hudVideo.textContent =
+    `${video.videoWidth}x${video.videoHeight} · ${active?.videoCodec}`;
+
+  hudAudio.textContent =
+    `${active?.audioCodec} · ${Math.round((active?.bandwidth||0)/1000)} kbps · ${active?.language}`;
+
+  hudText.textContent =
+    player.getTextTracks().find(t => t.active)?.language || "off";
 }
 </script>
 
