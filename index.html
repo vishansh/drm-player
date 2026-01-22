@@ -9,52 +9,36 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.9/shaka-player.compiled.js"></script>
 
 <style>
-body{
-  margin:0;background:#0d0f14;color:#eee;font-family:system-ui
-}
-
+body{margin:0;background:#0d0f14;color:#eee;font-family:system-ui}
 .container{max-width:1150px;margin:auto;padding:16px}
 
-.card{
-  background:#171a22;border-radius:14px;
-  padding:14px;margin-bottom:14px
-}
+.card{background:#171a22;border-radius:14px;padding:14px;margin-bottom:14px}
 
 input,textarea,button{
-  width:100%;background:#0e1117;
-  border:1px solid #2a2f3a;
-  border-radius:10px;padding:10px;
-  color:white;margin-top:6px
+  width:100%;background:#0e1117;border:1px solid #2a2f3a;
+  border-radius:10px;padding:10px;color:white;margin-top:6px
 }
-
 textarea{resize:vertical}
 
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-button{
-  background:linear-gradient(135deg,#3b82f6,#06b6d4);
-  border:none;font-weight:600;cursor:pointer
-}
+button{background:linear-gradient(135deg,#3b82f6,#06b6d4);border:none;font-weight:600;cursor:pointer}
 
 /* PLAYER */
 
 .player-wrap{position:relative}
-
 video{width:100%;border-radius:16px;background:black}
 
 .hud{
   position:absolute;bottom:10px;left:10px;
-  background:rgba(0,0,0,.65);
-  padding:8px 12px;border-radius:12px;
-  font-size:12px;pointer-events:none
+  background:rgba(0,0,0,.65);padding:8px 12px;
+  border-radius:12px;font-size:12px;pointer-events:none
 }
 
 /* GEAR */
 
 .gear{
   position:absolute;top:10px;right:10px;
-  background:rgba(0,0,0,.7);
-  border-radius:50%;
+  background:rgba(0,0,0,.7);border-radius:50%;
   width:46px;height:46px;
   display:grid;place-items:center;
   font-size:22px;cursor:pointer;z-index:6
@@ -64,55 +48,39 @@ video{width:100%;border-radius:16px;background:black}
 
 .settings-panel{
   position:absolute;top:62px;right:10px;
-  background:rgba(15,18,26,.95);
-  border-radius:16px;padding:10px;
-  width:220px;display:none;z-index:6
+  background:rgba(15,18,26,.95);border-radius:16px;
+  padding:10px;width:220px;display:none;z-index:6
 }
 
 .settings-panel button{
   width:100%;background:none;border:none;
-  color:white;padding:12px;
-  text-align:left;border-radius:10px
+  color:white;padding:12px;text-align:left;border-radius:10px
 }
 
 /* BOTTOM SHEET */
 
 .sheet{
-  position:fixed;left:0;right:0;
-  bottom:-100%;
-  background:#11141c;
-  border-radius:20px 20px 0 0;
-  padding:16px;
-  transition:.25s;
-  z-index:10;
-  max-height:80vh;
-  overflow:auto
+  position:fixed;left:0;right:0;bottom:-100%;
+  background:#11141c;border-radius:20px 20px 0 0;
+  padding:16px;transition:.25s;
+  z-index:10;max-height:80vh;overflow:auto
 }
-
 .sheet.show{bottom:0}
 
-.sheet canvas{
+canvas.graph{
   width:100%;height:140px;
-  background:#0b0e14;
-  border-radius:12px;
-  margin-bottom:12px
+  background:#0b0e14;border-radius:12px;margin-bottom:10px
 }
 
 .row-item{
-  padding:16px;
-  border-bottom:1px solid #222;
-  cursor:pointer;
-  font-size:15px
+  padding:16px;border-bottom:1px solid #222;
+  cursor:pointer;font-size:15px
 }
-
-/* BACKDROP */
 
 .backdrop{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.6);
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
   display:none;z-index:9
 }
-
 .backdrop.show{display:block}
 
 /* MOBILE */
@@ -126,17 +94,15 @@ video{width:100%;border-radius:16px;background:black}
 
 @media(min-width:821px){
   .sheet{
-    left:auto;right:20px;
-    bottom:20px;width:380px;
-    border-radius:16px
+    left:auto;right:20px;bottom:20px;
+    width:380px;border-radius:16px
   }
   .sheet.show{bottom:20px}
   .backdrop{display:none}
 }
 
-.stats-block{
-  font-size:14px;line-height:1.6
-}
+.stats-block{font-size:14px;line-height:1.6}
+.stats-block b{font-size:15px}
 </style>
 </head>
 
@@ -171,10 +137,9 @@ video{width:100%;border-radius:16px;background:black}
 <video id="video" controls playsinline></video>
 
 <div class="hud">
-<div>🔐 DRM: <span id="hudDrm">-</span></div>
-<div>🎥 Video: <span id="hudVideo">-</span></div>
-<div>🔊 Audio: <span id="hudAudio">-</span></div>
-<div>💬 Subs: <span id="hudText">-</span></div>
+<div>🎥 <span id="hudVideo">-</span></div>
+<div>🔊 <span id="hudAudio">-</span></div>
+<div>💬 <span id="hudText">-</span></div>
 </div>
 
 </div>
@@ -184,7 +149,10 @@ video{width:100%;border-radius:16px;background:black}
 
 <div class="sheet" id="sheet">
 <h3 id="sheetTitle"></h3>
-<canvas id="bufferCanvas"></canvas>
+
+<canvas id="bufferCanvas" class="graph" style="display:none"></canvas>
+<canvas id="bwCanvas" class="graph" style="display:none"></canvas>
+
 <div id="sheetList"></div>
 </div>
 
@@ -197,39 +165,41 @@ const sheetList=document.getElementById("sheetList");
 const sheetTitle=document.getElementById("sheetTitle");
 const backdrop=document.getElementById("backdrop");
 
-const canvas=document.getElementById("bufferCanvas");
-const ctx=canvas.getContext("2d");
+const bufferCanvas=document.getElementById("bufferCanvas");
+const bwCanvas=document.getElementById("bwCanvas");
+const bctx=bufferCanvas.getContext("2d");
+const bwctx=bwCanvas.getContext("2d");
 
-const hudDrm=document.getElementById("hudDrm");
 const hudVideo=document.getElementById("hudVideo");
 const hudAudio=document.getElementById("hudAudio");
 const hudText=document.getElementById("hudText");
 
 let player;
 let bufferHistory=[];
+let bwHistory=[];
 let videoTracks=[],audioTracks=[],textTracks=[];
 
-/* ---------- UI ---------- */
+/* UI */
 
 function toggleSettings(){
-
-  // Mobile -> open menu sheet
-  if (window.matchMedia("(max-width: 820px)").matches){
+  if(window.matchMedia("(max-width:820px)").matches){
     openSheet("menu");
     return;
   }
 
-  // Desktop
   settingsPanel.style.display =
     settingsPanel.style.display==="block"?"none":"block";
 }
 
 function openSheet(type){
 
+  bufferCanvas.style.display = type==="stats"?"block":"none";
+  bwCanvas.style.display = type==="stats"?"block":"none";
+
   settingsPanel.style.display="none";
   sheet.dataset.type=type;
 
-  sheetTitle.textContent =
+  sheetTitle.textContent=
     type==="menu"?"⚙️ Settings":
     type==="video"?"🎥 Video":
     type==="audio"?"🔊 Audio":
@@ -247,10 +217,9 @@ function closeSheet(){
   backdrop.classList.remove("show");
 }
 
-/* ---------- DRM ---------- */
+/* DRM */
 
 function parseKeys(){
-
   const j=json.value.trim();
   const p=pairs.value.trim();
   const m={};
@@ -270,7 +239,7 @@ function parseKeys(){
   return m;
 }
 
-/* ---------- MAIN ---------- */
+/* MAIN */
 
 async function start(){
 
@@ -289,7 +258,7 @@ async function start(){
 
   await player.load(url);
 
-  // 📱 fullscreen + landscape on mobile
+  // 📱 fullscreen + landscape
   if(window.matchMedia("(max-width:820px)").matches){
     try{
       if(video.requestFullscreen) await video.requestFullscreen();
@@ -304,7 +273,7 @@ async function start(){
   setInterval(updateHUD,1000);
 }
 
-/* ---------- TRACKS ---------- */
+/* TRACKS */
 
 function buildTrackLists(){
 
@@ -319,7 +288,7 @@ function buildTrackLists(){
   textTracks=player.getTextTracks();
 }
 
-/* ---------- SHEET ---------- */
+/* SHEET */
 
 function renderSheet(type){
 
@@ -340,12 +309,16 @@ function renderSheet(type){
     return;
   }
 
+  sheetList.innerHTML=
+    `<div class="row-item" onclick="openSheet('menu')">⬅ Back</div>`;
+
   const list=
     type==="video"?videoTracks:
     type==="audio"?audioTracks:
     textTracks;
 
   list.forEach((t,i)=>{
+
     const d=document.createElement("div");
     d.className="row-item";
 
@@ -357,12 +330,11 @@ function renderSheet(type){
       :t.language;
 
     d.onclick=()=>selectTrack(type,i);
-
     sheetList.appendChild(d);
   });
 }
 
-/* ---------- SELECT ---------- */
+/* SELECT */
 
 function selectTrack(type,i){
 
@@ -382,7 +354,7 @@ function selectTrack(type,i){
   closeSheet();
 }
 
-/* ---------- STATS ---------- */
+/* STATS */
 
 function bufferLength(){
   if(!video.buffered.length) return 0;
@@ -416,7 +388,7 @@ function renderStatsPanel(){
   </div>`;
 }
 
-/* ---------- HUD ---------- */
+/* HUD + GRAPH */
 
 function updateHUD(){
 
@@ -424,8 +396,6 @@ function updateHUD(){
 
   const s=player.getStats();
   const a=player.getVariantTracks().find(v=>v.active);
-
-  hudDrm.textContent=s.drmInfo?.keySystem||"clear";
 
   hudVideo.textContent=
     video.videoWidth+"x"+video.videoHeight+" · "+(a?.videoCodec||"-");
@@ -437,6 +407,38 @@ function updateHUD(){
 
   hudText.textContent=
     player.getTextTracks().find(t=>t.active)?.language||"off";
+
+  bufferHistory.push(bufferLength());
+  if(bufferHistory.length>60) bufferHistory.shift();
+
+  bwHistory.push(s.estimatedBandwidth/1000);
+  if(bwHistory.length>60) bwHistory.shift();
+
+  drawGraphs();
+}
+
+function drawGraphs(){
+
+  drawLine(bufferCanvas,bctx,bufferHistory,30,"#3b82f6");
+  drawLine(bwCanvas,bwctx,bwHistory,20000,"#22c55e");
+}
+
+function drawLine(canvas,ctx,data,max,color){
+
+  canvas.width=canvas.clientWidth;
+  canvas.height=canvas.clientHeight;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle=color;
+  ctx.beginPath();
+
+  data.forEach((v,i)=>{
+    const x=i/60*canvas.width;
+    const y=canvas.height-(v/max)*canvas.height;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+
+  ctx.stroke();
 }
 </script>
 
