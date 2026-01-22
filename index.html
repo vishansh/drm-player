@@ -222,37 +222,57 @@ function populateSelectors() {
   const variants = player.getVariantTracks();
   const textTracks = player.getTextTracks();
 
-  // VIDEO
+  /* ------------ VIDEO ------------ */
+
   const videoTracks = variants.filter(v => v.videoCodec);
+
   videoSel.innerHTML = "";
+
   videoTracks.forEach((v, i) => {
     const o = document.createElement("option");
     o.value = i;
-    o.textContent = `${v.height}p`;
+    o.textContent =
+      `${v.height}p · ${Math.round(v.bandwidth / 1000)} kbps`;
     videoSel.appendChild(o);
   });
 
   videoSel.onchange = () => {
-    player.configure({ abr: { enabled: false }});
+    player.configure({ abr: { enabled: false } });
     player.selectVariantTrack(videoTracks[videoSel.value], true);
   };
 
-  // AUDIO
-  const langs = [...new Set(variants.map(v => v.language))];
+  /* ------------ AUDIO ------------ */
+
+  const audioGroups = {};
+
+  variants.forEach(v => {
+    const key =
+      `${v.language}|${v.audioCodec}|${Math.round(v.audioBandwidth/1000)}`;
+
+    audioGroups[key] = v;
+  });
+
+  const audioTracks = Object.values(audioGroups);
+
   audioSel.innerHTML = "";
-  langs.forEach(l => {
+
+  audioTracks.forEach((v, i) => {
     const o = document.createElement("option");
-    o.value = l;
-    o.textContent = l;
+    o.value = i;
+    o.textContent =
+      `${v.language} · ${v.audioCodec} · ${Math.round(v.audioBandwidth/1000)} kbps`;
     audioSel.appendChild(o);
   });
 
   audioSel.onchange = () => {
-    player.selectAudioLanguage(audioSel.value);
+    const chosen = audioTracks[audioSel.value];
+    player.selectAudioLanguage(chosen.language);
   };
 
-  // SUBS
+  /* ------------ SUBS ------------ */
+
   textSel.innerHTML = "";
+
   const off = document.createElement("option");
   off.value = "";
   off.textContent = "Subs Off";
