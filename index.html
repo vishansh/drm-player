@@ -1,184 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DRM Stream Lab Player</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.9/shaka-player.compiled.js"></script>
 
 <style>
-body {
-  margin: 0;
-  background: #0d0f14;
-  color: #eee;
-  font-family: system-ui, sans-serif;
+/* ========== BASE ========== */
+
+body{
+  margin:0;background:#0d0f14;color:#eee;
+  font-family:system-ui,-apple-system,sans-serif
+}
+.container{max-width:1150px;margin:auto;padding:20px}
+h1{font-size:22px}
+
+.card{
+  background:#171a22;border-radius:14px;
+  padding:14px;margin-bottom:14px
 }
 
-.container {
-  max-width: 1150px;
-  margin: auto;
-  padding: 20px;
+input,textarea,button{
+  width:100%;background:#0e1117;
+  border:1px solid #2a2f3a;
+  border-radius:10px;padding:9px;
+  color:white;margin-top:6px
 }
 
-/* ---------------- INPUT CARD ---------------- */
+textarea{resize:vertical}
 
-.card {
-  background: #171a22;
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 14px;
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+button{
+  background:linear-gradient(135deg,#3b82f6,#06b6d4);
+  border:none;font-weight:600;cursor:pointer
 }
 
-input, textarea, button {
-  width: 100%;
-  background: #0e1117;
-  border: 1px solid #2a2f3a;
-  border-radius: 10px;
-  padding: 9px;
-  color: white;
-  margin-top: 6px;
+/* ========== PLAYER ========== */
+
+.player-wrap{position:relative}
+video{width:100%;border-radius:16px;background:black}
+
+/* HUD */
+
+.hud{
+  position:absolute;bottom:12px;left:12px;
+  background:rgba(0,0,0,.65);
+  padding:10px 14px;border-radius:12px;
+  font-size:12px;pointer-events:none
 }
 
-textarea { resize: vertical; }
+/* Gear */
 
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.gear{
+  position:absolute;top:12px;right:12px;
+  background:rgba(0,0,0,.7);
+  border-radius:50%;width:42px;height:42px;
+  display:grid;place-items:center;
+  font-size:20px;cursor:pointer;z-index:6
 }
 
-button {
-  background: linear-gradient(135deg,#3b82f6,#06b6d4);
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
+/* Desktop panel */
+
+.settings-panel{
+  position:absolute;top:64px;right:12px;
+  background:rgba(15,18,26,.95);
+  border-radius:16px;padding:10px;
+  width:220px;display:none;z-index:6
 }
 
-/* ---------------- PLAYER ---------------- */
-
-.player-wrap {
-  position: relative;
+.settings-panel button{
+  width:100%;background:none;border:none;
+  color:white;padding:10px;text-align:left;
+  border-radius:10px;cursor:pointer
 }
 
-video {
-  width: 100%;
-  border-radius: 16px;
-  background: black;
+.settings-panel button:hover{
+  background:rgba(255,255,255,.1)
 }
 
-/* ---------- HUD ---------- */
+/* Bottom sheet */
 
-.hud {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 12px;
-  line-height: 1.4;
-  pointer-events: none;
+.sheet{
+  position:fixed;left:0;right:0;
+  bottom:-100%;background:#11141c;
+  border-radius:20px 20px 0 0;
+  padding:16px;transition:.25s;
+  z-index:10;max-height:75vh;
+  overflow:auto
 }
 
-/* ---------- GEAR ---------- */
+.sheet.show{bottom:0}
 
-.gear {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0,0,0,.7);
-  border-radius: 50%;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 6;
+.sheet canvas{
+  width:100%;height:160px;
+  background:#0b0e14;border-radius:12px;
+  margin-bottom:12px
 }
 
-/* ---------- SETTINGS ---------- */
+.row-item{
+  padding:14px;border-bottom:1px solid #222;
+  cursor:pointer
+}
+.row-item:hover{background:rgba(255,255,255,.05)}
 
-.settings-panel {
-  position: absolute;
-  top: 64px;
-  right: 12px;
-  background: rgba(15,18,26,.95);
-  border-radius: 16px;
-  padding: 10px;
-  width: 220px;
-  display: none;
-  z-index: 6;
+pre{font-size:12px;white-space:pre-wrap}
+
+/* Backdrop */
+
+.backdrop{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;z-index:9
+}
+.backdrop.show{display:block}
+
+/* ========== MOBILE ========== */
+
+body.mobile .container{padding:10px}
+body.mobile .gear{width:48px;height:48px;font-size:22px}
+body.mobile .hud{font-size:11px;bottom:8px;left:8px}
+body.mobile .settings-panel{display:none!important}
+body.mobile .sheet{max-height:85vh}
+
+/* ========== DESKTOP ========== */
+
+body.desktop .sheet{
+  left:auto;right:20px;
+  bottom:20px;width:380px;
+  border-radius:16px
 }
 
-.settings-panel button {
-  width: 100%;
-  background: none;
-  border: none;
-  color: white;
-  padding: 10px;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 10px;
-}
-
-.settings-panel button:hover {
-  background: rgba(255,255,255,.1);
-}
-
-/* ---------- BOTTOM SHEET ---------- */
-
-.sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: -100%;
-  background: #11141c;
-  border-radius: 20px 20px 0 0;
-  padding: 16px;
-  transition: bottom .25s ease;
-  z-index: 10;
-}
-
-.sheet.show { bottom: 0; }
-
-.sheet h3 {
-  margin-top: 0;
-}
-
-.sheet .row-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 14px;
-  border-bottom: 1px solid #222;
-  cursor: pointer;
-}
-
-.sheet .row-item:hover {
-  background: rgba(255,255,255,.05);
-}
-
-.sheet canvas {
-  width: 100%;
-  height: 160px;
-  background: #0b0e14;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
-
-/* ---------- BACKDROP ---------- */
-
-.backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: none;
-  z-index: 9;
-}
-
-.backdrop.show { display: block; }
-
+body.desktop .sheet.show{bottom:20px}
+body.desktop .backdrop{display:none}
 </style>
 </head>
 
@@ -188,224 +144,204 @@ video {
 <h1>🧪 DRM Stream Lab Player</h1>
 
 <div class="card">
-  <input id="url" placeholder="MPD / M3U8 URL">
+<input id="url" placeholder="MPD / M3U8 URL">
 
-  <div class="row">
-    <textarea id="json" rows="5" placeholder="ClearKey JSON"></textarea>
-    <textarea id="pairs" rows="5" placeholder="kid:key"></textarea>
-  </div>
+<div class="row">
+<textarea id="json" rows="5" placeholder="ClearKey JSON"></textarea>
+<textarea id="pairs" rows="5" placeholder="kid:key"></textarea>
+</div>
 
-  <button onclick="start()">▶ Play</button>
+<button onclick="start()">▶ Play</button>
 </div>
 
 <div class="player-wrap">
 
-  <div class="gear" onclick="toggleSettings()">⚙️</div>
+<div class="gear" onclick="toggleSettings()">⚙️</div>
 
-  <div class="settings-panel" id="settingsPanel">
-    <button onclick="openSheet('video')">Video Quality</button>
-    <button onclick="openSheet('audio')">Audio</button>
-    <button onclick="openSheet('text')">Subtitles</button>
-    <button onclick="openSheet('network')">📡 Network Stats</button>
-  </div>
-
-  <video id="video" controls></video>
-
-  <div class="hud">
-    <div><b>DRM:</b> <span id="hudDrm">-</span></div>
-    <div><b>Video:</b> <span id="hudVideo">-</span></div>
-    <div><b>Audio:</b> <span id="hudAudio">-</span></div>
-    <div><b>Subs:</b> <span id="hudText">-</span></div>
-  </div>
-
+<div class="settings-panel" id="settingsPanel">
+<button onclick="openSheet('video')">Video</button>
+<button onclick="openSheet('audio')">Audio</button>
+<button onclick="openSheet('text')">Subs</button>
+<button onclick="openSheet('network')">📡 Network Stats</button>
 </div>
 
+<video id="video" controls></video>
+
+<div class="hud">
+<div>DRM: <span id="hudDrm">-</span></div>
+<div>Video: <span id="hudVideo">-</span></div>
+<div>Audio: <span id="hudAudio">-</span></div>
+<div>Subs: <span id="hudText">-</span></div>
+</div>
+
+</div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
 
 <div class="sheet" id="sheet">
-  <h3 id="sheetTitle"></h3>
-  <canvas id="bufferCanvas"></canvas>
-  <div id="sheetList"></div>
+<h3 id="sheetTitle"></h3>
+<canvas id="bufferCanvas"></canvas>
+<div id="sheetList"></div>
 </div>
 
 <script>
-const video = document.getElementById("video");
+/* ========= MOBILE DETECT ========= */
 
-const hudDrm = document.getElementById("hudDrm");
-const hudVideo = document.getElementById("hudVideo");
-const hudAudio = document.getElementById("hudAudio");
-const hudText = document.getElementById("hudText");
+const isMobile =
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  window.innerWidth < 820;
 
-const settingsPanel = document.getElementById("settingsPanel");
-const sheet = document.getElementById("sheet");
-const sheetList = document.getElementById("sheetList");
-const sheetTitle = document.getElementById("sheetTitle");
-const backdrop = document.getElementById("backdrop");
+document.body.classList.add(isMobile?"mobile":"desktop");
 
-const canvas = document.getElementById("bufferCanvas");
-const ctx = canvas.getContext("2d");
+/* ========= ELEMENTS ========= */
+
+const video=document.getElementById("video");
+const settingsPanel=document.getElementById("settingsPanel");
+const sheet=document.getElementById("sheet");
+const sheetList=document.getElementById("sheetList");
+const sheetTitle=document.getElementById("sheetTitle");
+const backdrop=document.getElementById("backdrop");
+const canvas=document.getElementById("bufferCanvas");
+const ctx=canvas.getContext("2d");
+
+const hudDrm=document.getElementById("hudDrm");
+const hudVideo=document.getElementById("hudVideo");
+const hudAudio=document.getElementById("hudAudio");
+const hudText=document.getElementById("hudText");
 
 let player;
-let videoTracks = [];
-let audioTracks = [];
-let textTracks = [];
-let bufferHistory = [];
+let bufferHistory=[];
+let videoTracks=[],audioTracks=[],textTracks=[];
 
-/* ---------------- UI ---------------- */
+/* ========= UI ========= */
 
-function toggleSettings() {
-  settingsPanel.style.display =
-    settingsPanel.style.display === "block" ? "none" : "block";
+function toggleSettings(){
+  if(isMobile){openSheet("video");return}
+  settingsPanel.style.display=
+    settingsPanel.style.display==="block"?"none":"block";
 }
 
-function openSheet(type) {
-  settingsPanel.style.display = "none";
-  sheet.dataset.type = type;
-
-  sheetTitle.textContent =
-    type === "video" ? "Video Quality" :
-    type === "audio" ? "Audio Tracks" :
-    type === "text" ? "Subtitles" :
+function openSheet(type){
+  settingsPanel.style.display="none";
+  sheet.dataset.type=type;
+  sheetTitle.textContent=
+    type==="video"?"Video":
+    type==="audio"?"Audio":
+    type==="text"?"Subtitles":
     "Network Stats";
 
   renderSheet(type);
-
   sheet.classList.add("show");
   backdrop.classList.add("show");
 }
 
-function closeSheet() {
+function closeSheet(){
   sheet.classList.remove("show");
   backdrop.classList.remove("show");
 }
 
-/* ---------------- DRM ---------------- */
+/* ========= DRM ========= */
 
-function parseKeys() {
-  const json = document.getElementById("json").value.trim();
-  const pairs = document.getElementById("pairs").value.trim();
+function parseKeys(){
+  const j=json.value.trim();
+  const p=pairs.value.trim();
+  const m={};
 
-  if (json) {
-    const ck = JSON.parse(json);
-    const map = {};
-    ck.keys.forEach(k => map[k.kid] = k.k);
-    return map;
+  if(j){
+    JSON.parse(j).keys.forEach(k=>m[k.kid]=k.k);
+    return m;
   }
 
-  const map = {};
-  pairs.split("\n").forEach(l => {
-    if (!l.includes(":")) return;
-    const [kid, key] = l.trim().split(":");
-    map[kid] = key;
+  p.split("\n").forEach(l=>{
+    if(l.includes(":")){
+      const[a,b]=l.split(":");
+      m[a]=b;
+    }
   });
 
-  return map;
+  return m;
 }
 
-/* ---------------- MAIN ---------------- */
+/* ========= MAIN ========= */
 
-async function start() {
+async function start(){
 
-  if (player) await player.destroy();
-
-  const url = document.getElementById("url").value.trim();
-  if (!url) return alert("Enter manifest URL");
-
-  const clearKeys = parseKeys();
+  if(player) await player.destroy();
 
   shaka.polyfill.installAll();
-  player = new shaka.Player(video);
+  player=new shaka.Player(video);
 
-  if (Object.keys(clearKeys).length) {
-    player.configure({ drm: { clearKeys }});
-  }
+  const url=document.getElementById("url").value.trim();
+  const ck=parseKeys();
+
+  if(Object.keys(ck).length)
+    player.configure({drm:{clearKeys:ck}});
 
   await player.load(url);
 
   buildTrackLists();
-  setInterval(updateHUD, 1000);
+  setInterval(updateHUD,1000);
 }
 
-/* ---------------- TRACK LISTS ---------------- */
+/* ========= TRACK LISTS ========= */
 
-function buildTrackLists() {
-  const variants = player.getVariantTracks();
+function buildTrackLists(){
+  const v=player.getVariantTracks();
 
-  videoTracks = [...variants.filter(v => v.height)]
-    .sort((a,b)=>b.height-a.height || b.bandwidth-a.bandwidth);
+  videoTracks=[...v.filter(x=>x.height)]
+    .sort((a,b)=>b.height-a.height||b.bandwidth-a.bandwidth);
 
-  audioTracks = [...variants.filter(v => v.audioCodec)]
+  audioTracks=[...v.filter(x=>x.audioCodec)]
     .sort((a,b)=>(b.audioBandwidth||0)-(a.audioBandwidth||0));
 
-  textTracks = player.getTextTracks();
+  textTracks=player.getTextTracks();
 }
 
-/* ---------------- SHEET ---------------- */
+/* ========= SHEET ========= */
 
-function renderSheet(type) {
+function renderSheet(type){
 
-  sheetList.innerHTML = "";
+  sheetList.innerHTML="";
 
-  if (type === "network") {
+  if(type==="network"){
     renderNetworkStats();
     return;
   }
 
-  const list =
-    type === "video" ? videoTracks :
-    type === "audio" ? audioTracks :
+  const list=
+    type==="video"?videoTracks:
+    type==="audio"?audioTracks:
     textTracks;
 
-  list.forEach((t,i) => {
+  list.forEach((t,i)=>{
+    const d=document.createElement("div");
+    d.className="row-item";
+    d.textContent=
+      type==="video"
+        ?`${t.height}p • ${Math.round(t.bandwidth/1000)} kbps`
+      :type==="audio"
+        ?`${t.language} • ${t.audioCodec} • ${Math.round((t.audioBandwidth||0)/1000)} kbps`
+      :t.language;
 
-    const row = document.createElement("div");
-    row.className = "row-item";
-
-    if (type === "video")
-      row.textContent = `${t.height}p • ${Math.round(t.bandwidth/1000)} kbps`;
-
-    if (type === "audio")
-      row.textContent = `${t.language} • ${t.audioCodec} • ${Math.round((t.audioBandwidth||0)/1000)} kbps`;
-
-    if (type === "text")
-      row.textContent = t.language;
-
-    row.onclick = () => selectTrack(type,i);
-
-    sheetList.appendChild(row);
+    d.onclick=()=>selectTrack(type,i);
+    sheetList.appendChild(d);
   });
 }
 
-/* ---------------- NETWORK ---------------- */
+/* ========= SELECT ========= */
 
-function renderNetworkStats() {
-  sheetList.innerHTML = `
-    <div>Dropped Frames: ${video.getVideoPlaybackQuality?.().droppedVideoFrames}</div>
-    <div>Buffered: ${bufferLength().toFixed(1)} s</div>
-    <div>Bandwidth: ${Math.round(player.getStats().estimatedBandwidth/1000)} kbps</div>
-  `;
-}
+function selectTrack(type,i){
 
-function bufferLength() {
-  if (!video.buffered.length) return 0;
-  return video.buffered.end(video.buffered.length-1) - video.currentTime;
-}
-
-/* ---------------- SELECT ---------------- */
-
-function selectTrack(type,i) {
-
-  if (type==="video") {
+  if(type==="video"){
     player.configure({abr:{enabled:false}});
     player.selectVariantTrack(videoTracks[i],true);
   }
 
-  if (type==="audio")
+  if(type==="audio")
     player.selectAudioLanguage(audioTracks[i].language);
 
-  if (type==="text") {
+  if(type==="text"){
     player.selectTextLanguage(textTracks[i].language);
     player.setTextTrackVisibility(true);
   }
@@ -413,54 +349,88 @@ function selectTrack(type,i) {
   closeSheet();
 }
 
-/* ---------------- HUD ---------------- */
+/* ========= NETWORK ========= */
 
-function updateHUD() {
-
-  if (!player) return;
-
-  const stats = player.getStats();
-  const active = player.getVariantTracks().find(v => v.active);
-
-  hudDrm.textContent = stats.drmInfo?.keySystem || "clear";
-
-  hudVideo.textContent =
-    `${video.videoWidth}x${video.videoHeight} · ${active?.videoCodec}`;
-
-  hudAudio.textContent =
-    `${active?.audioCodec} · ${Math.round((active?.audioBandwidth||0)/1000)} kbps · ${active?.language}`;
-
-  hudText.textContent =
-    player.getTextTracks().find(t => t.active)?.language || "off";
-
-  bufferHistory.push(bufferLength());
-  if (bufferHistory.length > 60) bufferHistory.shift();
-
-  drawBufferGraph();
+function bufferLength(){
+  if(!video.buffered.length) return 0;
+  return video.buffered.end(video.buffered.length-1)-video.currentTime;
 }
 
-/* ---------------- GRAPH ---------------- */
+function getBufferedRanges(){
+  const r=[];
+  for(let i=0;i<video.buffered.length;i++)
+    r.push(`${video.buffered.start(i).toFixed(1)}-${video.buffered.end(i).toFixed(1)}`);
+  return r.join(", ");
+}
 
-function drawBufferGraph() {
+function renderNetworkStats(){
 
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
+  const s=player.getStats();
+  const a=player.getVariantTracks().find(v=>v.active);
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  sheetList.innerHTML=
+`<pre>${JSON.stringify({
+drm:s.drmInfo?.keySystem,
+kids:s.drmInfo?.keyIds,
+resolution:\`\${video.videoWidth}x\${video.videoHeight}\`,
+fps:a?.frameRate,
+videoCodec:a?.videoCodec,
+audioCodec:a?.audioCodec,
+channels:a?.channelsCount,
+buffered:bufferLength().toFixed(1)+" s",
+ranges:getBufferedRanges(),
+bandwidth:Math.round(s.estimatedBandwidth/1000)+" kbps",
+dropped:video.getVideoPlaybackQuality?.().droppedVideoFrames,
+abr:s.abrEnabled,
+playhead:video.currentTime.toFixed(1)
+},null,2)}</pre>`;
+}
 
-  ctx.strokeStyle = "#3b82f6";
+/* ========= HUD + GRAPH ========= */
+
+function updateHUD(){
+
+  if(!player) return;
+
+  const s=player.getStats();
+  const a=player.getVariantTracks().find(v=>v.active);
+
+  hudDrm.textContent=s.drmInfo?.keySystem||"clear";
+  hudVideo.textContent=
+    `${video.videoWidth}x${video.videoHeight} · ${a?.videoCodec}`;
+  hudAudio.textContent=
+    `${a?.audioCodec} · ${Math.round((a?.audioBandwidth||0)/1000)} kbps · ${a?.language}`;
+  hudText.textContent=
+    player.getTextTracks().find(t=>t.active)?.language||"off";
+
+  bufferHistory.push(bufferLength());
+  if(bufferHistory.length>60) bufferHistory.shift();
+
+  drawGraph();
+}
+
+function drawGraph(){
+
+  const rect=canvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+
+  canvas.width=rect.width*dpr;
+  canvas.height=rect.height*dpr;
+
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,rect.width,rect.height);
+
+  ctx.strokeStyle="#3b82f6";
   ctx.beginPath();
 
   bufferHistory.forEach((v,i)=>{
-    const x = i / 60 * canvas.width;
-    const y = canvas.height - (v/30)*canvas.height;
-    if (i===0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
+    const x=i/60*rect.width;
+    const y=rect.height-(v/30)*rect.height;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
   });
 
   ctx.stroke();
 }
 </script>
-
 </body>
 </html>
