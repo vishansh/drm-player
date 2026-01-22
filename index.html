@@ -20,56 +20,6 @@ body {
   padding: 20px;
 }
 
-/* ---------------- PLAYER ---------------- */
-
-.player-wrap {
-  position: relative;
-}
-
-video {
-  width: 100%;
-  border-radius: 16px;
-  background: black;
-}
-
-/* ---------- OVERLAY PANEL ---------- */
-
-.overlay-panel {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(15,18,26,.9);
-  border-radius: 14px;
-  padding: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 5;
-}
-
-.overlay-panel select {
-  background: #0e1117;
-  border: 1px solid #2a2f3a;
-  color: white;
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-/* ---------- HUD ---------- */
-
-.hud {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 12px;
-  line-height: 1.4;
-  pointer-events: none;
-}
-
 /* ---------------- INPUT CARD ---------------- */
 
 .card {
@@ -104,6 +54,131 @@ button {
   cursor: pointer;
 }
 
+/* ---------------- PLAYER ---------------- */
+
+.player-wrap {
+  position: relative;
+}
+
+video {
+  width: 100%;
+  border-radius: 16px;
+  background: black;
+}
+
+/* ---------- HUD ---------- */
+
+.hud {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(6px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* ---------- GEAR ---------- */
+
+.gear {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,.7);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 6;
+}
+
+/* ---------- SETTINGS ---------- */
+
+.settings-panel {
+  position: absolute;
+  top: 64px;
+  right: 12px;
+  background: rgba(15,18,26,.95);
+  border-radius: 16px;
+  padding: 10px;
+  width: 220px;
+  display: none;
+  z-index: 6;
+}
+
+.settings-panel button {
+  width: 100%;
+  background: none;
+  border: none;
+  color: white;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.settings-panel button:hover {
+  background: rgba(255,255,255,.1);
+}
+
+/* ---------- BOTTOM SHEET ---------- */
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -100%;
+  background: #11141c;
+  border-radius: 20px 20px 0 0;
+  padding: 16px;
+  transition: bottom .25s ease;
+  z-index: 10;
+}
+
+.sheet.show { bottom: 0; }
+
+.sheet h3 {
+  margin-top: 0;
+}
+
+.sheet .row-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px;
+  border-bottom: 1px solid #222;
+  cursor: pointer;
+}
+
+.sheet .row-item:hover {
+  background: rgba(255,255,255,.05);
+}
+
+.sheet canvas {
+  width: 100%;
+  height: 160px;
+  background: #0b0e14;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+/* ---------- BACKDROP ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: none;
+  z-index: 9;
+}
+
+.backdrop.show { display: block; }
+
 </style>
 </head>
 
@@ -112,36 +187,30 @@ button {
 
 <h1>🧪 DRM Stream Lab Player</h1>
 
-<!-- INPUTS -->
 <div class="card">
-  <label>MPD / M3U8 URL</label>
-  <input id="url" placeholder="https://cdn.example.com/manifest.mpd">
+  <input id="url" placeholder="MPD / M3U8 URL">
 
   <div class="row">
-    <textarea id="json" rows="5"
-placeholder="ClearKey JSON (optional)"></textarea>
-
-    <textarea id="pairs" rows="5"
-placeholder="kid1:key1
-kid2:key2"></textarea>
+    <textarea id="json" rows="5" placeholder="ClearKey JSON"></textarea>
+    <textarea id="pairs" rows="5" placeholder="kid:key"></textarea>
   </div>
 
   <button onclick="start()">▶ Play</button>
 </div>
 
-<!-- PLAYER -->
 <div class="player-wrap">
 
-  <!-- selectors IN PLAYER -->
-  <div class="overlay-panel">
-    <select id="videoSelect"></select>
-    <select id="audioSelect"></select>
-    <select id="textSelect"></select>
+  <div class="gear" onclick="toggleSettings()">⚙️</div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <button onclick="openSheet('video')">Video Quality</button>
+    <button onclick="openSheet('audio')">Audio</button>
+    <button onclick="openSheet('text')">Subtitles</button>
+    <button onclick="openSheet('network')">📡 Network Stats</button>
   </div>
 
   <video id="video" controls></video>
 
-  <!-- HUD -->
   <div class="hud">
     <div><b>DRM:</b> <span id="hudDrm">-</span></div>
     <div><b>Video:</b> <span id="hudVideo">-</span></div>
@@ -153,21 +222,66 @@ kid2:key2"></textarea>
 
 </div>
 
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+
+<div class="sheet" id="sheet">
+  <h3 id="sheetTitle"></h3>
+  <canvas id="bufferCanvas"></canvas>
+  <div id="sheetList"></div>
+</div>
+
 <script>
 const video = document.getElementById("video");
 
-const videoSel = document.getElementById("videoSelect");
-const audioSel = document.getElementById("audioSelect");
-const textSel  = document.getElementById("textSelect");
-
-const hudDrm   = document.getElementById("hudDrm");
+const hudDrm = document.getElementById("hudDrm");
 const hudVideo = document.getElementById("hudVideo");
 const hudAudio = document.getElementById("hudAudio");
-const hudText  = document.getElementById("hudText");
+const hudText = document.getElementById("hudText");
+
+const settingsPanel = document.getElementById("settingsPanel");
+const sheet = document.getElementById("sheet");
+const sheetList = document.getElementById("sheetList");
+const sheetTitle = document.getElementById("sheetTitle");
+const backdrop = document.getElementById("backdrop");
+
+const canvas = document.getElementById("bufferCanvas");
+const ctx = canvas.getContext("2d");
 
 let player;
+let videoTracks = [];
+let audioTracks = [];
+let textTracks = [];
+let bufferHistory = [];
 
-/* ---------------- UTIL ---------------- */
+/* ---------------- UI ---------------- */
+
+function toggleSettings() {
+  settingsPanel.style.display =
+    settingsPanel.style.display === "block" ? "none" : "block";
+}
+
+function openSheet(type) {
+  settingsPanel.style.display = "none";
+  sheet.dataset.type = type;
+
+  sheetTitle.textContent =
+    type === "video" ? "Video Quality" :
+    type === "audio" ? "Audio Tracks" :
+    type === "text" ? "Subtitles" :
+    "Network Stats";
+
+  renderSheet(type);
+
+  sheet.classList.add("show");
+  backdrop.classList.add("show");
+}
+
+function closeSheet() {
+  sheet.classList.remove("show");
+  backdrop.classList.remove("show");
+}
+
+/* ---------------- DRM ---------------- */
 
 function parseKeys() {
   const json = document.getElementById("json").value.trim();
@@ -202,118 +316,149 @@ async function start() {
   const clearKeys = parseKeys();
 
   shaka.polyfill.installAll();
-
   player = new shaka.Player(video);
 
   if (Object.keys(clearKeys).length) {
-    player.configure({ drm: { clearKeys } });
+    player.configure({ drm: { clearKeys }});
   }
 
   await player.load(url);
 
-  populateSelectors();
+  buildTrackLists();
   setInterval(updateHUD, 1000);
 }
 
-/* ---------------- SELECTORS ---------------- */
+/* ---------------- TRACK LISTS ---------------- */
 
-function populateSelectors() {
-
+function buildTrackLists() {
   const variants = player.getVariantTracks();
-  const textTracks = player.getTextTracks();
 
-  /* ------------ VIDEO ------------ */
+  videoTracks = [...variants.filter(v => v.height)]
+    .sort((a,b)=>b.height-a.height || b.bandwidth-a.bandwidth);
 
-  const videoTracks = variants.filter(v => v.videoCodec);
+  audioTracks = [...variants.filter(v => v.audioCodec)]
+    .sort((a,b)=>(b.audioBandwidth||0)-(a.audioBandwidth||0));
 
-  videoSel.innerHTML = "";
+  textTracks = player.getTextTracks();
+}
 
-  videoTracks.forEach((v, i) => {
-    const o = document.createElement("option");
-    o.value = i;
-    o.textContent =
-      `${v.height}p · ${Math.round(v.bandwidth / 1000)} kbps`;
-    videoSel.appendChild(o);
+/* ---------------- SHEET ---------------- */
+
+function renderSheet(type) {
+
+  sheetList.innerHTML = "";
+
+  if (type === "network") {
+    renderNetworkStats();
+    return;
+  }
+
+  const list =
+    type === "video" ? videoTracks :
+    type === "audio" ? audioTracks :
+    textTracks;
+
+  list.forEach((t,i) => {
+
+    const row = document.createElement("div");
+    row.className = "row-item";
+
+    if (type === "video")
+      row.textContent = `${t.height}p • ${Math.round(t.bandwidth/1000)} kbps`;
+
+    if (type === "audio")
+      row.textContent = `${t.language} • ${t.audioCodec} • ${Math.round((t.audioBandwidth||0)/1000)} kbps`;
+
+    if (type === "text")
+      row.textContent = t.language;
+
+    row.onclick = () => selectTrack(type,i);
+
+    sheetList.appendChild(row);
   });
+}
 
-  videoSel.onchange = () => {
-    player.configure({ abr: { enabled: false } });
-    player.selectVariantTrack(videoTracks[videoSel.value], true);
-  };
+/* ---------------- NETWORK ---------------- */
 
-  /* ------------ AUDIO ------------ */
+function renderNetworkStats() {
+  sheetList.innerHTML = `
+    <div>Dropped Frames: ${video.getVideoPlaybackQuality?.().droppedVideoFrames}</div>
+    <div>Buffered: ${bufferLength().toFixed(1)} s</div>
+    <div>Bandwidth: ${Math.round(player.getStats().estimatedBandwidth/1000)} kbps</div>
+  `;
+}
 
-  const audioGroups = {};
+function bufferLength() {
+  if (!video.buffered.length) return 0;
+  return video.buffered.end(video.buffered.length-1) - video.currentTime;
+}
 
-  variants.forEach(v => {
-    const key =
-      `${v.language}|${v.audioCodec}|${Math.round(v.audioBandwidth/1000)}`;
+/* ---------------- SELECT ---------------- */
 
-    audioGroups[key] = v;
-  });
+function selectTrack(type,i) {
 
-  const audioTracks = Object.values(audioGroups);
+  if (type==="video") {
+    player.configure({abr:{enabled:false}});
+    player.selectVariantTrack(videoTracks[i],true);
+  }
 
-  audioSel.innerHTML = "";
+  if (type==="audio")
+    player.selectAudioLanguage(audioTracks[i].language);
 
-  audioTracks.forEach((v, i) => {
-    const o = document.createElement("option");
-    o.value = i;
-    o.textContent =
-      `${v.language} · ${v.audioCodec} · ${Math.round(v.audioBandwidth/1000)} kbps`;
-    audioSel.appendChild(o);
-  });
+  if (type==="text") {
+    player.selectTextLanguage(textTracks[i].language);
+    player.setTextTrackVisibility(true);
+  }
 
-  audioSel.onchange = () => {
-    const chosen = audioTracks[audioSel.value];
-    player.selectAudioLanguage(chosen.language);
-  };
-
-  /* ------------ SUBS ------------ */
-
-  textSel.innerHTML = "";
-
-  const off = document.createElement("option");
-  off.value = "";
-  off.textContent = "Subs Off";
-  textSel.appendChild(off);
-
-  textTracks.forEach(t => {
-    const o = document.createElement("option");
-    o.value = t.language;
-    o.textContent = t.language;
-    textSel.appendChild(o);
-  });
-
-  textSel.onchange = () => {
-    if (!textSel.value) {
-      player.setTextTrackVisibility(false);
-    } else {
-      player.selectTextLanguage(textSel.value);
-      player.setTextTrackVisibility(true);
-    }
-  };
+  closeSheet();
 }
 
 /* ---------------- HUD ---------------- */
 
 function updateHUD() {
+
   if (!player) return;
 
   const stats = player.getStats();
   const active = player.getVariantTracks().find(v => v.active);
 
-  hudDrm.textContent =
-    stats.drmInfo?.keySystem || "clear";
+  hudDrm.textContent = stats.drmInfo?.keySystem || "clear";
 
   hudVideo.textContent =
     `${video.videoWidth}x${video.videoHeight} · ${active?.videoCodec}`;
 
   hudAudio.textContent =
-    `${active?.audioCodec} · ${Math.round((active?.bandwidth||0)/1000)} kbps · ${active?.language}`;
+    `${active?.audioCodec} · ${Math.round((active?.audioBandwidth||0)/1000)} kbps · ${active?.language}`;
 
   hudText.textContent =
     player.getTextTracks().find(t => t.active)?.language || "off";
+
+  bufferHistory.push(bufferLength());
+  if (bufferHistory.length > 60) bufferHistory.shift();
+
+  drawBufferGraph();
+}
+
+/* ---------------- GRAPH ---------------- */
+
+function drawBufferGraph() {
+
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle = "#3b82f6";
+  ctx.beginPath();
+
+  bufferHistory.forEach((v,i)=>{
+    const x = i / 60 * canvas.width;
+    const y = canvas.height - (v/30)*canvas.height;
+    if (i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  });
+
+  ctx.stroke();
 }
 </script>
 
