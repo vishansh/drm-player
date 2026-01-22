@@ -36,7 +36,9 @@ video{width:100%;border-radius:16px;background:black}
 .row-item{padding:14px;border-bottom:1px solid #222;cursor:pointer}
 .row-item:hover{background:rgba(255,255,255,.05)}
 
-pre{font-size:12px}
+.stats-block{font-size:13px;line-height:1.6}
+.stats-block b{font-size:14px}
+
 </style>
 </head>
 
@@ -64,7 +66,7 @@ pre{font-size:12px}
 <button onclick="openSheet('video')">Video</button>
 <button onclick="openSheet('audio')">Audio</button>
 <button onclick="openSheet('text')">Subs</button>
-<button onclick="openSheet('network')">📡 Network Stats</button>
+<button onclick="openSheet('stats')">📊 Stats</button>
 </div>
 
 <video id="video" controls></video>
@@ -89,7 +91,6 @@ pre{font-size:12px}
 
 <script>
 const video=document.getElementById("video");
-
 const settingsPanel=document.getElementById("settingsPanel");
 const sheet=document.getElementById("sheet");
 const sheetList=document.getElementById("sheetList");
@@ -108,6 +109,7 @@ let bufferHistory=[];
 let videoTracks=[],audioTracks=[],textTracks=[];
 
 /* UI */
+
 function toggleSettings(){
   settingsPanel.style.display=
     settingsPanel.style.display==="block"?"none":"block";
@@ -116,11 +118,12 @@ function toggleSettings(){
 function openSheet(t){
   settingsPanel.style.display="none";
   sheet.dataset.type=t;
+
   sheetTitle.textContent=
     t==="video"?"Video":
     t==="audio"?"Audio":
     t==="text"?"Subtitles":
-    "Network Stats";
+    "Stats";
 
   renderSheet(t);
   sheet.classList.add("show");
@@ -133,9 +136,10 @@ function closeSheet(){
 }
 
 /* DRM */
+
 function parseKeys(){
-  const j=document.getElementById("json").value.trim();
-  const p=document.getElementById("pairs").value.trim();
+  const j=json.value.trim();
+  const p=pairs.value.trim();
   const m={};
 
   if(j){
@@ -154,6 +158,7 @@ function parseKeys(){
 }
 
 /* MAIN */
+
 async function start(){
 
   if(player) await player.destroy();
@@ -174,6 +179,7 @@ async function start(){
 }
 
 /* TRACKS */
+
 function buildTrackLists(){
   const v=player.getVariantTracks();
 
@@ -187,12 +193,13 @@ function buildTrackLists(){
 }
 
 /* SHEET */
+
 function renderSheet(type){
 
   sheetList.innerHTML="";
 
-  if(type==="network"){
-    renderNetworkStats();
+  if(type==="stats"){
+    renderStatsPanel();
     return;
   }
 
@@ -204,6 +211,7 @@ function renderSheet(type){
   list.forEach((t,i)=>{
     const d=document.createElement("div");
     d.className="row-item";
+
     d.textContent=
       type==="video"
         ?`${t.height}p • ${Math.round(t.bandwidth/1000)} kbps`
@@ -217,6 +225,7 @@ function renderSheet(type){
 }
 
 /* SELECT */
+
 function selectTrack(type,i){
 
   if(type==="video"){
@@ -235,7 +244,8 @@ function selectTrack(type,i){
   closeSheet();
 }
 
-/* NETWORK */
+/* BUFFER HELPERS */
+
 function bufferLength(){
   if(!video.buffered.length)return 0;
   return video.buffered.end(video.buffered.length-1)-video.currentTime;
@@ -244,44 +254,49 @@ function bufferLength(){
 function getBufferedRanges(){
   let r=[];
   for(let i=0;i<video.buffered.length;i++)
-    r.push(`${video.buffered.start(i).toFixed(1)}-${video.buffered.end(i).toFixed(1)}`);
+    r.push(
+      video.buffered.start(i).toFixed(1)+"-"+video.buffered.end(i).toFixed(1)
+    );
   return r.join(", ");
 }
 
-function renderNetworkStats() {
+/* STATS PANEL */
 
-  const s = player.getStats();
-  const a = player.getVariantTracks().find(v => v.active);
+function renderStatsPanel(){
 
-  const info = {
-    drm: s.drmInfo ? s.drmInfo.keySystem : null,
-    kids: s.drmInfo ? s.drmInfo.keyIds : null,
+  const s=player.getStats();
+  const a=player.getVariantTracks().find(v=>v.active);
 
-    resolution: video.videoWidth + "x" + video.videoHeight,
-    fps: a ? a.frameRate : null,
+  sheetList.innerHTML=`
+  <div class="stats-block">
 
-    videoCodec: a ? a.videoCodec : null,
-    audioCodec: a ? a.audioCodec : null,
-    channels: a ? a.channelsCount : null,
+  <b>🔐 DRM</b><br>
+  System: ${s.drmInfo?.keySystem||"clear"}<br>
+  KIDs: ${(s.drmInfo?.keyIds||[]).join(", ")||"unknown"}<br><br>
 
-    buffered: bufferLength().toFixed(1),
-    ranges: getBufferedRanges(),
+  <b>🎥 VIDEO</b><br>
+  Resolution: ${video.videoWidth}x${video.videoHeight}<br>
+  FPS: ${a?.frameRate?.toFixed(2)||"-"}<br>
+  Codec: ${a?.videoCodec||"-"}<br><br>
 
-    bandwidth: Math.round(s.estimatedBandwidth / 1000) + " kbps",
+  <b>🔊 AUDIO</b><br>
+  Codec: ${a?.audioCodec||"-"}<br>
+  Channels: ${a?.channelsCount||"-"}<br>
+  Bitrate: ${Math.round((a?.audioBandwidth||0)/1000)} kbps<br><br>
 
-    dropped:
-      video.getVideoPlaybackQuality &&
-      video.getVideoPlaybackQuality().droppedVideoFrames,
+  <b>📡 PLAYBACK</b><br>
+  Buffered: ${bufferLength().toFixed(1)} s<br>
+  Ranges: ${getBufferedRanges()||"-"}<br>
+  Bandwidth: ${Math.round(s.estimatedBandwidth/1000)} kbps<br>
+  Dropped Frames: ${video.getVideoPlaybackQuality?.().droppedVideoFrames||0}<br>
+  Playhead: ${video.currentTime.toFixed(1)} s
 
-    abr: s.abrEnabled,
-    playhead: video.currentTime.toFixed(1)
-  };
-
-  sheetList.innerHTML =
-    "<pre>" + JSON.stringify(info, null, 2) + "</pre>";
+  </div>
+  `;
 }
 
 /* HUD + GRAPH */
+
 function updateHUD(){
 
   if(!player)return;
@@ -291,9 +306,13 @@ function updateHUD(){
 
   hudDrm.textContent=s.drmInfo?.keySystem||"clear";
   hudVideo.textContent=
-    `${video.videoWidth}x${video.videoHeight} · ${a?.videoCodec}`;
+    video.videoWidth+"x"+video.videoHeight+" · "+(a?.videoCodec||"-");
+
   hudAudio.textContent=
-    `${a?.audioCodec} · ${Math.round((a?.audioBandwidth||0)/1000)} kbps · ${a?.language}`;
+    (a?.audioCodec||"-")+" · "+
+    Math.round((a?.audioBandwidth||0)/1000)+" kbps · "+
+    (a?.language||"-");
+
   hudText.textContent=
     player.getTextTracks().find(t=>t.active)?.language||"off";
 
@@ -302,6 +321,8 @@ function updateHUD(){
 
   drawGraph();
 }
+
+/* GRAPH */
 
 function drawGraph(){
 
@@ -321,5 +342,6 @@ function drawGraph(){
   ctx.stroke();
 }
 </script>
+
 </body>
 </html>
